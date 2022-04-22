@@ -1,0 +1,55 @@
+---
+
+cluster: "koios"
+
+attributes:
+
+  modules: ""
+
+  extra_jupyter_args: ""
+
+  custom_cores_cnt:
+    label: Core count
+    help: select a core count from the drop-down
+    widget: select
+    options:
+      - [ "4 cores", "4" ]
+      - [ "8 cores", "8" ]
+      - [ "16 cores", "16" ]
+      - [ "32 cores", "32" ]
+      - [ "64 cores", "64" ]
+  mode:
+    widget: "radio"
+    value: "1"
+    options:
+      - ["Jupyter Lab", "1"]
+      - ["Jupyter Notebook", "0"]
+
+  anaconda_version:
+    label: Anaconda module version
+    widget: select
+    options:
+            - [ "Anaconda3 2021.11 (4.10.3)", "lang/Anaconda3/2021.11" ]
+
+  conda_env_name:
+          label: Conda environment path to use (prefix ~/cenvs )
+          value: "conda_jupyter_default"
+          widget: text_field
+
+  conda_env_create_if_missing:
+          label: create conda env if not present
+          widget: "radio"
+          value: "1"
+          options:
+                  - ["yes","1"]
+                  - ["no" ,"0"]
+
+form:
+  - extra_jupyter_args
+  - bc_num_hours
+  - custom_cores_cnt
+  - mode
+  - anaconda_version
+  - conda_env_name
+  - conda_env_create_if_missing
+

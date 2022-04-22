@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+
+# functions
+
+# src: https://stackoverflow.com/questions/3963716/how-to-manually-expand-a-special-variable-ex-tilde-in-bash/29310477#29310477
+expandPath() {
+  local path
+  local -a pathElements resultPathElements
+  IFS=':' read -r -a pathElements <<<"$1"
+  : "${pathElements[@]}"
+  for path in "${pathElements[@]}"; do
+    : "$path"
+    case $path in
+      "~+"/*)
+        path=$PWD/${path#"~+/"}
+        ;;
+      "~-"/*)
+        path=$OLDPWD/${path#"~-/"}
+        ;;
+      "~"/*)
+        path=$HOME/${path#"~/"}
+        ;;
+      "~"*)
+        username=${path%%/*}
+        username=${username#"~"}
+        IFS=: read -r _ _ _ _ _ homedir _ < <(getent passwd "$username")
+        if [[ $path = */* ]]; then
+          path=${homedir}/${path#*/}
+        else
+          path=$homedir
+        fi
+        ;;
+    esac
+    resultPathElements+=( "$path" )
+  done
+  local result
+  printf -v result '%s:' "${resultPathElements[@]}"
+  printf '%s\n' "${result%:}"
+}
+
+
+<%-
+  require 'pathname'
+-%>
+
+echo "Starting main script..."
+echo "TTT - $(date)"
+
+#
+# Start Jupyter server
+#
+#
+module purge
+
+# Load the require modules
+module load <%= context.anaconda_version %>
+
+# do the conda stuff
+
+source ${EBROOTANACONDA3}/etc/profile.d/conda.sh
+mkdir -p "~/cenvs"
+
+CONDA_ENV_PREFIX=$(expandPath "~/cenvs/<%= context.conda_env_name %>")
+CONDA_ENV_LIST=$(expandPath "~/.conda/environments.txt")
+
+echo "================================================================================================="
+env
+echo "================================================================================================="
+
+echo "info: CONDA_ENV_PREFIX: ${CONDA_ENV_PREFIX}"
+echo "info: CONDA_ENV_LIST:   ${CONDA_ENV_LIST}"
+
+if grep -Fxq "$CONDA_ENV_PREFIX" "$CONDA_ENV_LIST"; then
+	echo "info: environment exists -> activate it"
+	conda activate "$CONDA_ENV_PREFIX"
+else
+	echo "info: environment is missing"
+	if [ <%= context.conda_env_create_if_missing %> -eq 1 ]; then
+		echo "info: we should create it and install jupyterlab into it."
+	        conda create --prefix "$CONDA_ENV_PREFIX"
+		conda activate "$CONDA_ENV_PREFIX"
+		conda install -c conda-forge jupyterlab
+	else
+		echo "info: there is no such environment and we should not create it. Let's scancel the job"
+		scancel ${SLURM_JOB_ID}
+		exit 1
+	fi
+
+fi
+
+
+
+# List loaded modules
+module list
+
+export JUPYTER_PATH="${PWD}/share/jupyter:${OSC_JUPYTER_PATH}"
+
+echo "TTT - $(date)"
+
+# List available kernels for debugging purposes
+set -x
+jupyter kernelspec list
+{ set +x; } 2>/dev/null
+echo "TTT - $(date)"
+
+# Launch the Jupyter server
+set -x
+jupyter <%= context.mode == "1" ? "lab" : "notebook" %> --config="${CONFIG_FILE}"
+

@@ -1,0 +1,9 @@
+---
+name: Bring your own Jupyter
+category: Interactive Apps
+subcategory: Servers
+role: batch_connect
+description: |
+  This app will launch a [Jupyter] server in Anaconda container of your choice. <br>
+
+  [Jupyter]: https://jupyter.org/
